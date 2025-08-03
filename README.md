@@ -42,7 +42,7 @@ brew install web-ext
 ### 2. Clone this repo and run
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/bjs-coupon-clipper.git
+git clone https://github.com/wleonhardt/bjs-coupon-clipper-ff-ext.git
 cd bjs-coupon-clipper
 web-ext run
 ```
