@@ -53,7 +53,7 @@ web-ext run
 web-ext build
 ```
 
-This will output a signed `.xpi` package in the `web-ext-artifacts/` folder.
+This will output a `.zip` package in the `web-ext-artifacts/` folder.
 
 ---
 
