@@ -47,7 +47,7 @@ cd bjs-coupon-clipper
 web-ext run
 ```
 
-### 3. Build for distribution
+### 3. Build
 
 ```bash
 web-ext build
