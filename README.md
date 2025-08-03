@@ -68,7 +68,7 @@ This will output a `.zip` package in the `web-ext-artifacts/` folder.
 
 ## Attribution
 
-Inspired by [GreasyFork's BJ’s Coupon Clicker script](https://greasyfork.org/en/scripts/424555) and early Chrome automation projects. This is a full rewrite built for Firefox using modern WebExtension APIs.
+Inspired by [Sleevetrick's BJ’s Coupon Clicker script](https://greasyfork.org/en/scripts/424555) and early Chrome automation projects. This is a full rewrite built for Firefox using modern WebExtension APIs.
 
 ---
 
