@@ -1,39 +1,77 @@
 # BJ's Auto Coupon Clipper for Firefox
 
-This extension automatically clips all available coupons on the [BJ’s Wholesale Club](https://www.bjs.com/myCoupons) website with a single click. It's designed to save time and avoid the tedious process of manually selecting each coupon.
+Automatically clip every available coupon on [BJ’s Wholesale Club](https://www.bjs.com/myCoupons) with a single click.
 
-Built from the ground up using the WebExtension API, the project provides a clean interface, efficient automation, and full compatibility with Firefox.
+This Firefox extension scrolls through the coupons page, clicks all “Clip to Card” buttons, and handles errors like “Please refresh” automatically. Designed for speed, reliability, and zero tracking.
+
+---
+
+## Install
+
+### From Mozilla Add-ons (Recommended)
+
+[Install from Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/bj-s-auto-coupon-clipper/)  
+No setup required. Just install, visit the BJ’s coupons page, click the extension icon, and press **Play**.
+
+> The extension will continue clipping in the background until all coupons are added.
 
 ---
 
 ## Features
 
-- **One-click coupon clipping**  
-  Easily activate or pause clipping from the popup menu.
-
-- **Smart auto-scrolling**  
-  Automatically scrolls to load more coupons as needed.
-
-- **Error detection and recovery**  
-  Handles common BJ’s site errors (e.g., “Please refresh”) by auto-reloading and retrying.
-
-- **Simple and clear UI**  
-  Includes a popup menu with Play/Pause control and current status.
-
-- **Lightweight and privacy-respecting**  
-  No trackers, analytics, or background connections.
+- One-click control – Play/Pause toggling via popup  
+- Auto-scroll – Loads and clips coupons as the page grows  
+- Error recovery – Detects issues and refreshes as needed  
+- Status display – Popup shows current running state  
+- No bloat – Lightweight, no tracking, no 3rd-party code  
 
 ---
 
-## Installation
+## For Developers
 
-This extension is currently built for Firefox. You can:
+If you'd like to modify or run the extension locally:
 
-### 1. Run Locally (Development Mode)
-
-Install [web-ext](https://extensionworkshop.com/documentation/develop/web-ext-command-reference/) via npm or Homebrew:
+### 1. Install web-ext
 
 ```bash
 npm install --global web-ext
 # or
 brew install web-ext
+```
+
+### 2. Clone this repo and run
+
+```bash
+git clone https://github.com/YOUR_USERNAME/bjs-coupon-clipper.git
+cd bjs-coupon-clipper
+web-ext run
+```
+
+### 3. Build for distribution
+
+```bash
+web-ext build
+```
+
+This will output a signed `.xpi` package in the `web-ext-artifacts/` folder.
+
+---
+
+## How to Use
+
+1. Navigate to [https://www.bjs.com/myCoupons](https://www.bjs.com/myCoupons)
+2. Click the BJ’s Auto Coupon Clipper icon in the Firefox toolbar
+3. Press **Play** – the extension will start clipping all visible coupons
+4. You can pause anytime
+
+---
+
+## Attribution
+
+Inspired by [GreasyFork's BJ’s Coupon Clicker script](https://greasyfork.org/en/scripts/424555) and early Chrome automation projects. This is a full rewrite built for Firefox using modern WebExtension APIs.
+
+---
+
+## License
+
+Mozilla Public License 2.0 — see [LICENSE](LICENSE)
