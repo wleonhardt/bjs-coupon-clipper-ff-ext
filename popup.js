@@ -6,22 +6,36 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function updateUI() {
     const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+    const isOnCouponsPage = /^https:\/\/www\.bjs\.com\/myCoupons/.test(tab.url);
 
-    const isOnBJs = tab.url.includes("bjs.com/myCoupons");
-    if (!isOnBJs) {
+    if (!isOnCouponsPage) {
       toggleBtn.disabled = true;
       statusEl.textContent = "Status: Idle";
-      messageEl.textContent = "Not on BJ's website.";
       progressEl.textContent = "";
+      const link = document.createElement("a");
+      link.href = "https://www.bjs.com/myCoupons";
+      link.textContent = "➡ Go to BJ’s coupon page to begin";
+      link.target = "_blank";
+      link.style.textDecoration = "none";
+      link.style.color = "#c8102e";
+      messageEl.innerHTML = "";
+      messageEl.appendChild(link);
       return;
     }
 
     const { isRunning = false, totalClipped = 0, status = "Ready", message = "" } = await browser.storage.local.get(["isRunning", "totalClipped", "status", "message"]);
+    const isComplete = status === "Complete";
+
     toggleBtn.disabled = false;
     toggleBtn.textContent = isRunning ? "Cancel" : "Start";
+    if (isComplete) {
+      toggleBtn.textContent = "Start";
+      await browser.storage.local.set({ isRunning: false });
+    }
+
     statusEl.textContent = "Status: " + status;
     progressEl.textContent = `Clipped: ${totalClipped}`;
-    messageEl.textContent = (status === "Ready") ? "" : message;
+    messageEl.textContent = (status === "Ready") ? "" : (message || "");
   }
 
   toggleBtn.addEventListener("click", async () => {
@@ -45,6 +59,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (msg.type === "status") {
       statusEl.textContent = "Status: " + msg.status;
       messageEl.textContent = (msg.status === "Ready") ? "" : (msg.message || "");
+      if (msg.status === "Complete") {
+        toggleBtn.textContent = "Start";
+        browser.storage.local.set({ isRunning: false });
+      }
     }
   });
 

@@ -2,37 +2,46 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>BJ's Coupon Clipper</title>
+  <title>Coupon Clipper</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #f9f9f9;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f4f4f4;
       margin: 0;
-      padding: 15px;
-      width: 200px;
+      padding: 16px;
+      width: 220px;
       box-sizing: border-box;
+      border-radius: 8px;
     }
 
     h2 {
       font-size: 16px;
       text-align: center;
-      margin: 0 0 12px 0;
-      color: #333;
+      margin-bottom: 12px;
+      color: #b31b1b;
+      font-weight: bold;
     }
 
     button {
       width: 100%;
-      padding: 10px;
+      padding: 10px 12px;
       font-size: 15px;
+      font-weight: bold;
       border: none;
-      background: #0078D7;
+      background: #c8102e;
       color: white;
-      border-radius: 5px;
+      border-radius: 6px;
       cursor: pointer;
+      transition: background 0.3s;
     }
 
-    button:hover {
-      background: #005EA6;
+    button:disabled {
+      background: #ccc;
+      cursor: default;
+    }
+
+    button:hover:enabled {
+      background: #a0001f;
     }
 
     .status, .progress, .message {
@@ -42,13 +51,20 @@
       color: #333;
     }
 
+    .message a {
+      text-decoration: none;
+      color: #c8102e;
+      font-weight: bold;
+    }
+
     .message {
-      color: #d9534f;
+      margin-top: 8px;
+      color: #b31b1b;
     }
   </style>
 </head>
 <body>
-  <h2>BJ’s Coupon Clipper</h2>
+  <h2>Coupon Clipper</h2>
   <button id="toggle">Start</button>
   <div class="status" id="status">Status: Unknown</div>
   <div class="progress" id="progress">Clipped: 0</div>
