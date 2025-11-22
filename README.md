@@ -11,7 +11,7 @@ This Firefox extension scrolls through the coupons page, clicks all “Clip to C
 ### From Mozilla Add-ons (Recommended)
 
 [Install from Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/bj-s-auto-coupon-clipper/)  
-No setup required. Just install, visit the BJ’s coupons page, click the extension icon, and press **Play**.
+No setup required. Just install, visit the BJ’s coupons page, click the extension icon, and press **Start**.
 
 > The extension will continue clipping in the background until all coupons are added.
 
@@ -19,11 +19,12 @@ No setup required. Just install, visit the BJ’s coupons page, click the extens
 
 ## Features
 
-- One-click control – Play/Pause toggling via popup  
-- Auto-scroll – Loads and clips coupons as the page grows  
-- Error recovery – Detects issues and refreshes as needed  
-- Status display – Popup shows current running state  
-- No bloat – Lightweight, no tracking, no 3rd-party code  
+- One-click control – Start/Cancel via popup
+- Auto-scroll – Loads and clips all visible coupons
+- Error recovery – Detects issues and refreshes the page
+- Smart status – Shows Idle, Ready, Clipping, Complete
+- UI-matching – Inspired by BJ’s visual theme (no logos used)
+- No bloat – Lightweight, no tracking, no third-party code
 
 ---
 
@@ -61,7 +62,7 @@ This will output a `.zip` package in the `web-ext-artifacts/` folder.
 
 1. Navigate to [https://www.bjs.com/myCoupons](https://www.bjs.com/myCoupons)
 2. Click the BJ’s Auto Coupon Clipper icon in the Firefox toolbar
-3. Press **Play** – the extension will start clipping all visible coupons
+3. Press **Start** – the extension will start clipping all visible coupons
 4. You can pause anytime
 
 ---
