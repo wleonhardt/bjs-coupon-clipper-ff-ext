@@ -1,15 +1,58 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <title>BJ's Coupon Clipper</title>
   <style>
-    body { font-family: sans-serif; padding: 10px; width: 160px; }
-    button { width: 100%; padding: 10px; font-size: 16px; margin-bottom: 10px; }
-    .status { font-size: 14px; margin-top: 5px; text-align: center; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
+      margin: 0;
+      padding: 15px;
+      width: 200px;
+      box-sizing: border-box;
+    }
+
+    h2 {
+      font-size: 16px;
+      text-align: center;
+      margin: 0 0 12px 0;
+      color: #333;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      font-size: 15px;
+      border: none;
+      background: #0078D7;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #005EA6;
+    }
+
+    .status, .progress, .message {
+      font-size: 13px;
+      text-align: center;
+      margin-top: 10px;
+      color: #333;
+    }
+
+    .message {
+      color: #d9534f;
+    }
   </style>
 </head>
 <body>
-  <button id="toggle">Play</button>
+  <h2>BJ’s Coupon Clipper</h2>
+  <button id="toggle">Start</button>
   <div class="status" id="status">Status: Unknown</div>
+  <div class="progress" id="progress">Clipped: 0</div>
+  <div class="message" id="message"></div>
   <script src="popup.js"></script>
 </body>
 </html>
