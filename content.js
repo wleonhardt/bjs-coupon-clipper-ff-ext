@@ -1,9 +1,8 @@
-// content.js
-
 (async function () {
   let totalClipped = 0;
   let attempts = 0;
   let maxRetries = 5;
+  const VALIDATION_KEY = "bjs_validation_reload";
 
   function updateStatus(status, message = "") {
     browser.runtime.sendMessage({ type: "status", status, message }).catch(() => {});
@@ -19,6 +18,16 @@
     return document.querySelector('[data-auto-data="coupon_ClipToCard"]');
   }
 
+  function validateCompletion() {
+    sessionStorage.setItem(VALIDATION_KEY, "true");
+    location.reload(); // Will re-run script after reload
+  }
+
+  function finalizeCompletion() {
+    updateStatus("Complete", "✅ All coupons clipped.");
+    sessionStorage.removeItem(VALIDATION_KEY);
+  }
+
   function clipCoupons() {
     updateStatus("Clipping", "Clipping coupons...");
     const buttons = Array.from(document.querySelectorAll('[data-auto-data="coupon_ClipToCard"]:not(.bjs-clicked)'));
@@ -28,7 +37,7 @@
         window.scrollBy(0, 300);
         setTimeout(clipCoupons, 1500);
       } else {
-        updateStatus("Complete", "✅ All coupons clipped.");
+        validateCompletion(); // Refresh to double-check
       }
       return;
     }
@@ -75,10 +84,36 @@
 
   if (isRunning) {
     updateStatus("Clipping", "Clipping coupons...");
+
     if (document.readyState === "complete" || document.readyState === "interactive") {
-      setTimeout(clipCoupons, 1500);
+      setTimeout(() => {
+        const wasValidation = sessionStorage.getItem(VALIDATION_KEY);
+        if (wasValidation) {
+          // This is a post-reload validation
+          if (hasCoupons()) {
+            updateStatus("Clipping", "Found more after refresh, continuing...");
+            clipCoupons();
+          } else {
+            finalizeCompletion();
+          }
+        } else {
+          clipCoupons();
+        }
+      }, 1500);
     } else {
-      window.addEventListener("DOMContentLoaded", () => setTimeout(clipCoupons, 1500));
+      window.addEventListener("DOMContentLoaded", () => {
+        const wasValidation = sessionStorage.getItem(VALIDATION_KEY);
+        if (wasValidation) {
+          if (hasCoupons()) {
+            updateStatus("Clipping", "Found more after refresh, continuing...");
+            clipCoupons();
+          } else {
+            finalizeCompletion();
+          }
+        } else {
+          clipCoupons();
+        }
+      });
     }
   } else {
     determineInitialStatus();
