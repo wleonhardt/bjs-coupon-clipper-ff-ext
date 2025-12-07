@@ -1,6 +1,9 @@
+// content.js
+
 (async function () {
   let totalClipped = 0;
   let attempts = 0;
+  let maxRetries = 5;
 
   function updateStatus(status, message = "") {
     browser.runtime.sendMessage({ type: "status", status, message }).catch(() => {});
@@ -12,10 +15,6 @@
     browser.storage.local.set({ totalClipped });
   }
 
-  function hasError() {
-    return document.querySelector('[data-testid="error-msg"]');
-  }
-
   function hasCoupons() {
     return document.querySelector('[data-auto-data="coupon_ClipToCard"]');
   }
@@ -23,8 +22,9 @@
   function clipCoupons() {
     updateStatus("Clipping", "Clipping coupons...");
     const buttons = Array.from(document.querySelectorAll('[data-auto-data="coupon_ClipToCard"]:not(.bjs-clicked)'));
-    if (!buttons.length) {
-      if (attempts++ < 5) {
+
+    if (buttons.length === 0) {
+      if (attempts++ < maxRetries) {
         window.scrollBy(0, 300);
         setTimeout(clipCoupons, 1500);
       } else {
@@ -41,18 +41,20 @@
         return;
       }
 
-      if (hasError()) {
-        updateStatus("Error", "Detected BJ's error. Reloading...");
+      const btn = buttons[i];
+
+      try {
+        btn.click();
+        btn.classList.add("bjs-clicked");
+        totalClipped++;
+        sendProgress();
+      } catch (err) {
+        updateStatus("Error", "Coupon clipping failed. Reloading...");
         setTimeout(() => location.reload(), 3000);
         return;
       }
 
-      const btn = buttons[i];
-      btn.click();
-      btn.classList.add("bjs-clicked");
-      totalClipped++;
-      sendProgress();
-      setTimeout(() => clickNext(i + 1), 200);
+      setTimeout(() => clickNext(i + 1), 250);
     }
 
     clickNext(0);

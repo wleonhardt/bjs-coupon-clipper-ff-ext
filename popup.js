@@ -18,12 +18,20 @@ document.addEventListener("DOMContentLoaded", async () => {
       link.target = "_blank";
       link.style.textDecoration = "none";
       link.style.color = "#c8102e";
+      link.style.display = "block";
+      link.style.marginTop = "10px";
+      link.style.fontWeight = "bold";
       messageEl.innerHTML = "";
       messageEl.appendChild(link);
       return;
     }
 
-    const { isRunning = false, totalClipped = 0, status = "Ready", message = "" } = await browser.storage.local.get(["isRunning", "totalClipped", "status", "message"]);
+    const { isRunning = false, totalClipped = 0, status = "Ready", message = "" } = await browser.storage.local.get([
+      "isRunning",
+      "totalClipped",
+      "status",
+      "message",
+    ]);
     const isComplete = status === "Complete";
 
     toggleBtn.disabled = false;
@@ -35,13 +43,18 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     statusEl.textContent = "Status: " + status;
     progressEl.textContent = `Clipped: ${totalClipped}`;
-    messageEl.textContent = (status === "Ready") ? "" : (message || "");
+    messageEl.textContent = status === "Ready" ? "" : message || "";
   }
 
   toggleBtn.addEventListener("click", async () => {
     let { isRunning } = await browser.storage.local.get("isRunning");
     isRunning = !isRunning;
-    await browser.storage.local.set({ isRunning, status: isRunning ? "Clipping" : "Idle", totalClipped: 0, message: "" });
+    await browser.storage.local.set({
+      isRunning,
+      status: isRunning ? "Clipping" : "Idle",
+      totalClipped: 0,
+      message: "",
+    });
     updateUI();
 
     if (isRunning) {
@@ -58,11 +71,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     if (msg.type === "status") {
       statusEl.textContent = "Status: " + msg.status;
-      messageEl.textContent = (msg.status === "Ready") ? "" : (msg.message || "");
+      messageEl.textContent = msg.status === "Ready" ? "" : msg.message || "";
       if (msg.status === "Complete") {
         toggleBtn.textContent = "Start";
         browser.storage.local.set({ isRunning: false });
       }
+    }
+    if (msg.type === "url-updated") {
+      updateUI();
     }
   });
 
