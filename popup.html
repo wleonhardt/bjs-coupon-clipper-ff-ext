@@ -2,46 +2,37 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Coupon Clipper</title>
+  <title>BJ's Coupon Clipper</title>
   <style>
     body {
-      font-family: Arial, Helvetica, sans-serif;
-      background: #f4f4f4;
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
       margin: 0;
-      padding: 16px;
+      padding: 15px;
       width: 220px;
       box-sizing: border-box;
-      border-radius: 8px;
     }
 
     h2 {
       font-size: 16px;
       text-align: center;
-      margin-bottom: 12px;
-      color: #b31b1b;
-      font-weight: bold;
+      margin: 0 0 12px 0;
+      color: #c8102e;
     }
 
     button {
       width: 100%;
-      padding: 10px 12px;
+      padding: 10px;
       font-size: 15px;
-      font-weight: bold;
       border: none;
       background: #c8102e;
       color: white;
-      border-radius: 6px;
+      border-radius: 5px;
       cursor: pointer;
-      transition: background 0.3s;
     }
 
-    button:disabled {
-      background: #ccc;
-      cursor: default;
-    }
-
-    button:hover:enabled {
-      background: #a0001f;
+    button:hover {
+      background: #a10d25;
     }
 
     .status, .progress, .message {
@@ -57,18 +48,31 @@
       font-weight: bold;
     }
 
-    .message {
-      margin-top: 8px;
-      color: #b31b1b;
+    .spinner {
+      margin: 10px auto;
+      width: 24px;
+      height: 24px;
+      border: 3px solid #ccc;
+      border-top-color: #c8102e;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
   </style>
 </head>
 <body>
-  <h2>Coupon Clipper</h2>
+  <h2>BJ’s Coupon Clipper</h2>
   <button id="toggle">Start</button>
+  <div class="spinner" id="spinner"></div>
   <div class="status" id="status">Status: Unknown</div>
   <div class="progress" id="progress">Clipped: 0</div>
   <div class="message" id="message"></div>
+
+  <!-- Removed canvas + confetti -->
   <script src="popup.js"></script>
 </body>
 </html>

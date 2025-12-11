@@ -3,6 +3,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const statusEl = document.getElementById("status");
   const progressEl = document.getElementById("progress");
   const messageEl = document.getElementById("message");
+  const spinner = document.getElementById("spinner");
 
   async function updateUI() {
     const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
@@ -10,17 +11,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (!isOnCouponsPage) {
       toggleBtn.disabled = true;
+      spinner.style.display = "none";
       statusEl.textContent = "Status: Idle";
       progressEl.textContent = "";
       const link = document.createElement("a");
       link.href = "https://www.bjs.com/myCoupons";
       link.textContent = "➡ Go to BJ’s coupon page to begin";
       link.target = "_blank";
-      link.style.textDecoration = "none";
-      link.style.color = "#c8102e";
-      link.style.display = "block";
-      link.style.marginTop = "10px";
-      link.style.fontWeight = "bold";
       messageEl.innerHTML = "";
       messageEl.appendChild(link);
       return;
@@ -30,31 +27,30 @@ document.addEventListener("DOMContentLoaded", async () => {
       "isRunning",
       "totalClipped",
       "status",
-      "message",
+      "message"
     ]);
+
     const isComplete = status === "Complete";
 
     toggleBtn.disabled = false;
     toggleBtn.textContent = isRunning ? "Cancel" : "Start";
+    spinner.style.display = (status === "Clipping") ? "block" : "none";
+
     if (isComplete) {
       toggleBtn.textContent = "Start";
+      spinner.style.display = "none";
       await browser.storage.local.set({ isRunning: false });
     }
 
     statusEl.textContent = "Status: " + status;
     progressEl.textContent = `Clipped: ${totalClipped}`;
-    messageEl.textContent = status === "Ready" ? "" : message || "";
+    messageEl.textContent = (status === "Ready") ? "" : (message || "");
   }
 
   toggleBtn.addEventListener("click", async () => {
     let { isRunning } = await browser.storage.local.get("isRunning");
     isRunning = !isRunning;
-    await browser.storage.local.set({
-      isRunning,
-      status: isRunning ? "Clipping" : "Idle",
-      totalClipped: 0,
-      message: "",
-    });
+    await browser.storage.local.set({ isRunning, status: isRunning ? "Clipping" : "Idle", totalClipped: 0, message: "" });
     updateUI();
 
     if (isRunning) {
@@ -71,10 +67,37 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     if (msg.type === "status") {
       statusEl.textContent = "Status: " + msg.status;
-      messageEl.textContent = msg.status === "Ready" ? "" : msg.message || "";
+      messageEl.textContent = (msg.status === "Ready") ? "" : (msg.message || "");
+      spinner.style.display = (msg.status === "Clipping") ? "block" : "none";
+
       if (msg.status === "Complete") {
         toggleBtn.textContent = "Start";
         browser.storage.local.set({ isRunning: false });
+
+        // 🎉 Confetti burst
+        const duration = 1500;
+        const end = Date.now() + duration;
+        const colors = ['#c8102e', '#ffffff'];
+
+        (function frame() {
+          confetti({
+            particleCount: 3,
+            angle: 60,
+            spread: 55,
+            origin: { x: 0 },
+            colors
+          });
+          confetti({
+            particleCount: 3,
+            angle: 120,
+            spread: 55,
+            origin: { x: 1 },
+            colors
+          });
+          if (Date.now() < end) {
+            requestAnimationFrame(frame);
+          }
+        })();
       }
     }
     if (msg.type === "url-updated") {
