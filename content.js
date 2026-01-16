@@ -1,8 +1,11 @@
 (async function () {
   let totalClipped = 0;
   let attempts = 0;
-  let maxRetries = 5;
+  const maxRetries = 5;
+  const COUPON_SELECTOR = '[data-auto-data="coupon_ClipToCard"]';
   const VALIDATION_KEY = "bjs_validation_reload";
+  let stopRequested = false;
+  let isClipping = false;
 
   function updateStatus(status, message = "") {
     browser.runtime.sendMessage({ type: "status", status, message }).catch(() => {});
@@ -14,8 +17,12 @@
     browser.storage.local.set({ totalClipped });
   }
 
-  function hasCoupons() {
-    return document.querySelector('[data-auto-data="coupon_ClipToCard"]');
+  function getUnclickedButtons() {
+    return Array.from(document.querySelectorAll(`${COUPON_SELECTOR}:not(.bjs-clicked)`));
+  }
+
+  function hasUnclickedCoupons() {
+    return getUnclickedButtons().length > 0;
   }
 
   function validateCompletion() {
@@ -24,33 +31,68 @@
   }
 
   function finalizeCompletion() {
-    updateStatus("Complete", "✅ All coupons clipped.");
+    updateStatus(STATUS.COMPLETE, "");
     sessionStorage.removeItem(VALIDATION_KEY);
   }
 
-  function clipCoupons() {
-    updateStatus("Clipping", "Clipping coupons...");
-    const buttons = Array.from(document.querySelectorAll('[data-auto-data="coupon_ClipToCard"]:not(.bjs-clicked)'));
+  function waitForNewCoupons(timeoutMs) {
+    return new Promise((resolve) => {
+      let resolved = false;
+      const timer = setTimeout(() => {
+        cleanup();
+        resolve(false);
+      }, timeoutMs);
+
+      const observer = new MutationObserver(() => {
+        if (hasUnclickedCoupons()) {
+          cleanup();
+          resolve(true);
+        }
+      });
+
+      function cleanup() {
+        if (resolved) return;
+        resolved = true;
+        clearTimeout(timer);
+        observer.disconnect();
+      }
+
+      observer.observe(document.body, { childList: true, subtree: true });
+    });
+  }
+
+  async function isStillRunning() {
+    if (stopRequested) return false;
+    const { isRunning } = await browser.storage.local.get("isRunning");
+    return Boolean(isRunning);
+  }
+
+  async function clipCoupons() {
+    if (!(await isStillRunning())) {
+      updateStatus(STATUS.IDLE, "Stopped.");
+      return;
+    }
+
+    updateStatus(STATUS.CLIPPING, "Clipping coupons...");
+    const buttons = getUnclickedButtons();
 
     if (buttons.length === 0) {
       if (attempts++ < maxRetries) {
-        window.scrollBy(0, 300);
-        setTimeout(clipCoupons, 1500);
-      } else {
-        validateCompletion(); // Refresh to double-check
+        window.scrollBy(0, 600);
+        await waitForNewCoupons(1500);
+        return clipCoupons();
       }
+      validateCompletion(); // Refresh to double-check
       return;
     }
 
     attempts = 0;
 
-    function clickNext(i) {
-      if (i >= buttons.length) {
-        setTimeout(clipCoupons, 1000);
+    for (const btn of buttons) {
+      if (!(await isStillRunning())) {
+        updateStatus(STATUS.IDLE, "Stopped.");
         return;
       }
-
-      const btn = buttons[i];
 
       try {
         btn.click();
@@ -58,62 +100,70 @@
         totalClipped++;
         sendProgress();
       } catch (err) {
-        updateStatus("Error", "Coupon clipping failed. Reloading...");
+        updateStatus(STATUS.ERROR, "Coupon clipping failed. Reloading...");
         setTimeout(() => location.reload(), 3000);
         return;
       }
 
-      setTimeout(() => clickNext(i + 1), 250);
+      await new Promise((resolve) => setTimeout(resolve, 250));
     }
 
-    clickNext(0);
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    return clipCoupons();
   }
 
   function determineInitialStatus() {
     const isBJsSite = window.location.href.includes("bjs.com/myCoupons");
     if (!isBJsSite) {
-      updateStatus("Idle", "Not on BJ's website.");
-    } else if (hasCoupons()) {
-      updateStatus("Ready", "");
+      updateStatus(STATUS.IDLE, "Not on BJ's website.");
+    } else if (hasUnclickedCoupons()) {
+      updateStatus(STATUS.READY, "");
     } else {
-      updateStatus("Ready", "");
+      updateStatus(STATUS.READY, "");
     }
   }
 
-  const { isRunning } = await browser.storage.local.get("isRunning");
+  const { isRunning = false, totalClipped: storedTotalClipped = 0 } = await browser.storage.local.get([
+    "isRunning",
+    "totalClipped"
+  ]);
+
+  totalClipped = Number.isFinite(storedTotalClipped) ? storedTotalClipped : 0;
 
   if (isRunning) {
-    updateStatus("Clipping", "Clipping coupons...");
+    updateStatus(STATUS.CLIPPING, "Clipping coupons...");
 
-    if (document.readyState === "complete" || document.readyState === "interactive") {
+    const startClippingIfReady = () => {
       setTimeout(() => {
         const wasValidation = sessionStorage.getItem(VALIDATION_KEY);
         if (wasValidation) {
           // This is a post-reload validation
-          if (hasCoupons()) {
-            updateStatus("Clipping", "Found more after refresh, continuing...");
-            clipCoupons();
+          if (hasUnclickedCoupons()) {
+            updateStatus(STATUS.CLIPPING, "Found more after refresh, continuing...");
+            if (!isClipping) {
+              isClipping = true;
+              clipCoupons().finally(() => {
+                isClipping = false;
+              });
+            }
           } else {
             finalizeCompletion();
           }
         } else {
-          clipCoupons();
+          if (!isClipping) {
+            isClipping = true;
+            clipCoupons().finally(() => {
+              isClipping = false;
+            });
+          }
         }
       }, 1500);
+    };
+
+    if (document.readyState === "loading") {
+      window.addEventListener("DOMContentLoaded", startClippingIfReady);
     } else {
-      window.addEventListener("DOMContentLoaded", () => {
-        const wasValidation = sessionStorage.getItem(VALIDATION_KEY);
-        if (wasValidation) {
-          if (hasCoupons()) {
-            updateStatus("Clipping", "Found more after refresh, continuing...");
-            clipCoupons();
-          } else {
-            finalizeCompletion();
-          }
-        } else {
-          clipCoupons();
-        }
-      });
+      startClippingIfReady();
     }
   } else {
     determineInitialStatus();
@@ -121,9 +171,19 @@
 
   browser.runtime.onMessage.addListener((msg) => {
     if (msg === "start-clipping") {
+      stopRequested = false;
       totalClipped = 0;
-      updateStatus("Clipping", "Clipping coupons...");
-      clipCoupons();
+      updateStatus(STATUS.CLIPPING, "Clipping coupons...");
+      if (!isClipping) {
+        isClipping = true;
+        clipCoupons().finally(() => {
+          isClipping = false;
+        });
+      }
+    }
+    if (msg === "stop-clipping") {
+      stopRequested = true;
+      updateStatus(STATUS.IDLE, "Stopped.");
     }
   });
 })();

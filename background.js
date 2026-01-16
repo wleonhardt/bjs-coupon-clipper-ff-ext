@@ -1,7 +1,7 @@
 // background.js
 
 browser.runtime.onInstalled.addListener(() => {
-  browser.storage.local.set({ isRunning: false, totalClipped: 0, status: "Idle", message: "" });
+  browser.storage.local.set({ isRunning: false, status: "Idle", message: "" });
 });
 
 // Listen for tab URL updates and notify popup

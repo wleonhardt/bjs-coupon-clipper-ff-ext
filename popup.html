@@ -4,75 +4,172 @@
   <meta charset="UTF-8">
   <title>BJ's Coupon Clipper</title>
   <style>
+    @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
+
+    :root {
+      --accent: #c8102e;
+      --accent-dark: #9f0f25;
+      --ink: #111216;
+      --muted: #6b7078;
+      --panel: #ffffff;
+      --border: #e5e7eb;
+      --bg: #f6f5f3;
+    }
+
     body {
-      font-family: Arial, sans-serif;
-      background: #f9f9f9;
+      font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 18% 0%, #ffffff, var(--bg) 58%),
+        linear-gradient(135deg, rgba(200, 16, 46, 0.06), rgba(255, 210, 220, 0.03));
       margin: 0;
-      padding: 15px;
-      width: 220px;
+      padding: 16px;
+      width: 252px;
       box-sizing: border-box;
+      color: var(--ink);
+      position: relative;
+      overflow: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: absolute;
+      inset: -30% -10% auto -10%;
+      height: 120%;
+      background: radial-gradient(circle, rgba(200, 16, 46, 0.12), rgba(200, 16, 46, 0) 60%);
+      opacity: 0.3;
+      transform: translate3d(0, 0, 0);
+      animation: glow 12s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    .panel {
+      position: relative;
+      z-index: 1;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 12px 26px rgba(18, 20, 23, 0.08);
+      display: grid;
+      gap: 12px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
     }
 
     h2 {
-      font-size: 16px;
-      text-align: center;
-      margin: 0 0 12px 0;
-      color: #c8102e;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .status-pill {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: rgba(17, 18, 22, 0.06);
+      color: var(--muted);
+    }
+
+    .status-pill a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .status-pill a:hover {
+      text-decoration: underline;
+    }
+
+    .status-pill.status-ready {
+      background: rgba(15, 118, 110, 0.12);
+      color: #0f766e;
+    }
+
+    .status-pill.status-clipping {
+      background: rgba(200, 16, 46, 0.14);
+      color: var(--accent);
+    }
+
+    .status-pill.status-complete {
+      background: rgba(14, 116, 144, 0.12);
+      color: #0e7490;
+    }
+
+    .status-pill.status-error {
+      background: rgba(185, 28, 28, 0.12);
+      color: #b91c1c;
     }
 
     button {
       width: 100%;
-      padding: 10px;
-      font-size: 15px;
+      padding: 11px 12px;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
       border: none;
-      background: #c8102e;
+      background: linear-gradient(135deg, var(--accent), #e11438);
       color: white;
-      border-radius: 5px;
+      border-radius: 12px;
       cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+      box-shadow: 0 8px 18px rgba(200, 16, 46, 0.25);
     }
 
     button:hover {
-      background: #a10d25;
+      background: linear-gradient(135deg, var(--accent-dark), #d60f33);
+      transform: translateY(-1px);
     }
 
-    .status, .progress, .message {
-      font-size: 13px;
-      text-align: center;
-      margin-top: 10px;
-      color: #333;
+    button:disabled {
+      background: #d3d6db;
+      color: #7a7f87;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
     }
 
-    .message a {
+    .meta {
+      font-size: 12px;
+      color: var(--muted);
+      text-align: left;
+    }
+
+    .message {
+      min-height: 16px;
+    }
+
+    .message a,
+    .message-link {
       text-decoration: none;
-      color: #c8102e;
-      font-weight: bold;
+      color: var(--accent);
+      font-weight: 600;
     }
 
-    .spinner {
-      margin: 10px auto;
-      width: 24px;
-      height: 24px;
-      border: 3px solid #ccc;
-      border-top-color: #c8102e;
-      border-radius: 50%;
-      animation: spin 0.6s linear infinite;
-      display: none;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
+    @keyframes glow {
+      0% { transform: translate3d(-6%, -4%, 0) scale(1); }
+      50% { transform: translate3d(6%, 6%, 0) scale(1.06); }
+      100% { transform: translate3d(-6%, -4%, 0) scale(1); }
     }
   </style>
 </head>
 <body>
-  <h2>BJ’s Coupon Clipper</h2>
-  <button id="toggle">Start</button>
-  <div class="spinner" id="spinner"></div>
-  <div class="status" id="status">Status: Unknown</div>
-  <div class="progress" id="progress">Clipped: 0</div>
-  <div class="message" id="message"></div>
-
-  <!-- Removed canvas + confetti -->
+  <div class="panel">
+    <div class="header">
+      <h2>BJ’s Coupon Clipper</h2>
+      <div class="status-pill" id="status-pill">Idle</div>
+    </div>
+    <button id="toggle">Start</button>
+    <div class="meta progress" id="progress">Clipped: 0</div>
+  </div>
+  <script src="constants.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
