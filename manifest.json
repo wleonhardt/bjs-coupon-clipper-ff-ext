@@ -1,26 +1,19 @@
 {
   "manifest_version": 2,
   "name": "BJ's Auto Coupon Clipper",
-  "version": "1.4",
+  "version": "2.0",
   "description": "Automatically clips coupons on BJ's website.",
   "permissions": [
     "tabs",
     "storage",
     "https://www.bjs.com/*"
   ],
-  "background": {
-    "scripts": [
-      "background.js"
-    ],
-    "persistent": false
-  },
   "content_scripts": [
     {
       "matches": [
         "https://www.bjs.com/myCoupons*"
       ],
       "js": [
-        "constants.js",
         "content.js"
       ]
     }
@@ -40,8 +33,5 @@
         "required": ["none"]
       }
     }
-  },
-  "web_accessible_resources": [
-    "constants.js"
-  ]
+  }
 }

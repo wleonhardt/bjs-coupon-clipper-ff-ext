@@ -1,189 +1,187 @@
 (async function () {
-  let totalClipped = 0;
-  let attempts = 0;
-  const maxRetries = 5;
+  // --- Constants ---
+  const CLICK_DELAY_MS = 250;
+  const BATCH_DELAY_MS = 800;
+  const LOAD_WAIT_MS = 1500;
+  const ERROR_RELOAD_MS = 3000;
+  const SCROLL_STEP_PX = 600;
+  const MAX_EMPTY_PASSES = 5;
   const COUPON_SELECTOR = '[data-auto-data="coupon_ClipToCard"]';
   const VALIDATION_KEY = "bjs_validation_reload";
-  let stopRequested = false;
-  let isClipping = false;
 
-  function updateStatus(status, message = "") {
-    browser.runtime.sendMessage({ type: "status", status, message }).catch(() => {});
-    browser.storage.local.set({ status, message });
+  const STATES = {
+    IDLE: "idle",
+    READY: "ready",
+    RUNNING: "running",
+    VALIDATING: "validating",
+    COMPLETE: "complete",
+    ERROR: "error"
+  };
+
+  // --- In-memory guards ---
+  let stopRequested = false;
+  let loopRunning = false;
+
+  // --- Helpers ---
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  function isCouponsPage() {
+    return location.href.includes("bjs.com/myCoupons");
   }
 
-  function sendProgress() {
-    browser.runtime.sendMessage({ type: "progress", totalClipped }).catch(() => {});
-    browser.storage.local.set({ totalClipped });
+  async function getState() {
+    const defaults = { runState: STATES.IDLE, totalClipped: 0, message: "" };
+    const stored = await browser.storage.local.get(Object.keys(defaults));
+    return { ...defaults, ...stored };
+  }
+
+  function setState(patch) {
+    return browser.storage.local.set(patch);
+  }
+
+  function markClicked(el) {
+    el.dataset.bjsClicked = "1";
   }
 
   function getUnclickedButtons() {
-    return Array.from(document.querySelectorAll(`${COUPON_SELECTOR}:not(.bjs-clicked)`));
+    return Array.from(
+      document.querySelectorAll(`${COUPON_SELECTOR}:not([data-bjs-clicked])`)
+    );
   }
 
   function hasUnclickedCoupons() {
     return getUnclickedButtons().length > 0;
   }
 
-  function validateCompletion() {
-    sessionStorage.setItem(VALIDATION_KEY, "true");
-    location.reload(); // Will re-run script after reload
-  }
-
-  function finalizeCompletion() {
-    updateStatus(STATUS.COMPLETE, "");
-    sessionStorage.removeItem(VALIDATION_KEY);
+  function shouldStop() {
+    return stopRequested;
   }
 
   function waitForNewCoupons(timeoutMs) {
     return new Promise((resolve) => {
-      let resolved = false;
-      const timer = setTimeout(() => {
-        cleanup();
-        resolve(false);
-      }, timeoutMs);
+      let done = false;
+      const timer = setTimeout(finish, timeoutMs, false);
 
       const observer = new MutationObserver(() => {
-        if (hasUnclickedCoupons()) {
-          cleanup();
-          resolve(true);
-        }
+        if (hasUnclickedCoupons()) finish(true);
       });
 
-      function cleanup() {
-        if (resolved) return;
-        resolved = true;
+      function finish(found) {
+        if (done) return;
+        done = true;
         clearTimeout(timer);
         observer.disconnect();
+        resolve(found);
       }
 
       observer.observe(document.body, { childList: true, subtree: true });
     });
   }
 
-  async function isStillRunning() {
-    if (stopRequested) return false;
-    const { isRunning } = await browser.storage.local.get("isRunning");
-    return Boolean(isRunning);
-  }
-
+  // --- Clipping loop ---
   async function clipCoupons() {
-    if (!(await isStillRunning())) {
-      updateStatus(STATUS.IDLE, "Stopped.");
-      return;
-    }
+    if (loopRunning) return;
+    loopRunning = true;
+    stopRequested = false;
 
-    updateStatus(STATUS.CLIPPING, "Clipping coupons...");
-    const buttons = getUnclickedButtons();
+    let state = await getState();
+    let totalClipped = state.totalClipped;
+    let emptyPasses = 0;
 
-    if (buttons.length === 0) {
-      if (attempts++ < maxRetries) {
-        window.scrollBy(0, 600);
-        await waitForNewCoupons(1500);
-        return clipCoupons();
-      }
-      validateCompletion(); // Refresh to double-check
-      return;
-    }
+    await setState({ runState: STATES.RUNNING, message: "Clipping coupons..." });
 
-    attempts = 0;
+    while (!shouldStop()) {
+      const buttons = getUnclickedButtons();
 
-    for (const btn of buttons) {
-      if (!(await isStillRunning())) {
-        updateStatus(STATUS.IDLE, "Stopped.");
-        return;
-      }
+      if (buttons.length > 0) {
+        emptyPasses = 0;
 
-      try {
-        btn.click();
-        btn.classList.add("bjs-clicked");
-        totalClipped++;
-        sendProgress();
-      } catch (err) {
-        updateStatus(STATUS.ERROR, "Coupon clipping failed. Reloading...");
-        setTimeout(() => location.reload(), 3000);
-        return;
-      }
+        for (const btn of buttons) {
+          if (shouldStop()) break;
 
-      await new Promise((resolve) => setTimeout(resolve, 250));
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    return clipCoupons();
-  }
-
-  function determineInitialStatus() {
-    const isBJsSite = window.location.href.includes("bjs.com/myCoupons");
-    if (!isBJsSite) {
-      updateStatus(STATUS.IDLE, "Not on BJ's website.");
-    } else if (hasUnclickedCoupons()) {
-      updateStatus(STATUS.READY, "");
-    } else {
-      updateStatus(STATUS.READY, "");
-    }
-  }
-
-  const { isRunning = false, totalClipped: storedTotalClipped = 0 } = await browser.storage.local.get([
-    "isRunning",
-    "totalClipped"
-  ]);
-
-  totalClipped = Number.isFinite(storedTotalClipped) ? storedTotalClipped : 0;
-
-  if (isRunning) {
-    updateStatus(STATUS.CLIPPING, "Clipping coupons...");
-
-    const startClippingIfReady = () => {
-      setTimeout(() => {
-        const wasValidation = sessionStorage.getItem(VALIDATION_KEY);
-        if (wasValidation) {
-          // This is a post-reload validation
-          if (hasUnclickedCoupons()) {
-            updateStatus(STATUS.CLIPPING, "Found more after refresh, continuing...");
-            if (!isClipping) {
-              isClipping = true;
-              clipCoupons().finally(() => {
-                isClipping = false;
-              });
-            }
-          } else {
-            finalizeCompletion();
-          }
-        } else {
-          if (!isClipping) {
-            isClipping = true;
-            clipCoupons().finally(() => {
-              isClipping = false;
+          try {
+            btn.click();
+            markClicked(btn);
+            totalClipped++;
+            await setState({ totalClipped });
+          } catch {
+            await setState({
+              runState: STATES.ERROR,
+              message: "Click failed. Reloading..."
             });
+            await sleep(ERROR_RELOAD_MS);
+            location.reload();
+            loopRunning = false;
+            return;
           }
-        }
-      }, 1500);
-    };
 
-    if (document.readyState === "loading") {
-      window.addEventListener("DOMContentLoaded", startClippingIfReady);
-    } else {
-      startClippingIfReady();
+          await sleep(CLICK_DELAY_MS);
+        }
+
+        await sleep(BATCH_DELAY_MS);
+        continue;
+      }
+
+      // No buttons found
+      if (emptyPasses < MAX_EMPTY_PASSES) {
+        emptyPasses++;
+        window.scrollBy(0, SCROLL_STEP_PX);
+        await setState({ message: `Scrolling for more coupons (${emptyPasses}/${MAX_EMPTY_PASSES})...` });
+        await waitForNewCoupons(LOAD_WAIT_MS);
+        continue;
+      }
+
+      // Retries exhausted — validation reload
+      await setState({ runState: STATES.VALIDATING, message: "Validating..." });
+      sessionStorage.setItem(VALIDATION_KEY, "true");
+      location.reload();
+      loopRunning = false;
+      return;
     }
-  } else {
-    determineInitialStatus();
+
+    // Stopped by user
+    await setState({ runState: STATES.IDLE, message: "Stopped." });
+    loopRunning = false;
   }
 
+  // --- Message listener (always registered) ---
   browser.runtime.onMessage.addListener((msg) => {
     if (msg === "start-clipping") {
       stopRequested = false;
-      totalClipped = 0;
-      updateStatus(STATUS.CLIPPING, "Clipping coupons...");
-      if (!isClipping) {
-        isClipping = true;
-        clipCoupons().finally(() => {
-          isClipping = false;
-        });
-      }
+      setState({ totalClipped: 0 }).then(() => clipCoupons());
     }
     if (msg === "stop-clipping") {
       stopRequested = true;
-      updateStatus(STATUS.IDLE, "Stopped.");
     }
   });
+
+  // --- Init ---
+  if (!isCouponsPage()) {
+    await setState({ runState: STATES.IDLE, message: "Not on coupons page." });
+    return;
+  }
+
+  const wasValidation = sessionStorage.getItem(VALIDATION_KEY);
+  const state = await getState();
+
+  if (wasValidation) {
+    sessionStorage.removeItem(VALIDATION_KEY);
+    await sleep(LOAD_WAIT_MS);
+
+    if (hasUnclickedCoupons()) {
+      await setState({ message: "Found more after validation, continuing..." });
+      clipCoupons();
+    } else {
+      await setState({ runState: STATES.COMPLETE, message: "All coupons clipped!" });
+    }
+    return;
+  }
+
+  if (state.runState === STATES.RUNNING || state.runState === STATES.VALIDATING) {
+    await sleep(LOAD_WAIT_MS);
+    clipCoupons();
+    return;
+  }
+
+  await setState({ runState: STATES.READY, totalClipped: 0, message: "" });
 })();
